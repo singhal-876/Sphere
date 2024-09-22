@@ -1,7 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  // FlutterLocalNotificationsPlugin instance
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    initializeNotifications();
+  }
+
+  void initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> showNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'sos_channel', // Channel ID
+      'SOS Notifications', // Channel Name
+      channelDescription: 'Notification when SOS is triggered',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin.show(
+      0, // Notification ID
+      'SOS Alert', // Notification title
+      'Calling and messaging your contacts', // Notification body
+      platformChannelSpecifics,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,22 +66,18 @@ class Home extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: Row(
               children: [
-                // color: Color.fromARGB(255, 223, 218, 226),
                 // Image on the left side
                 Container(
-                  width: MediaQuery.of(context).size.width *
-                      0.4, // 40% of screen width
+                  width: MediaQuery.of(context).size.width * 0.4,
                   height: double.infinity,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage(
-                          'assets/images/watch.png'), // Replace with your image URL
+                      image: AssetImage('assets/images/watch.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                const SizedBox(
-                    width: 10), // Space between image and status container
+                const SizedBox(width: 10),
 
                 // Status container on the right side
                 Expanded(
@@ -61,7 +103,7 @@ class Home extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 20), // Space between containers
+          const SizedBox(height: 20),
 
           // SOS Button
           Container(
@@ -75,14 +117,13 @@ class Home extends StatelessWidget {
                 shape: const CircleBorder(),
               ),
               onPressed: () {
-                // Add SOS functionality here
+                showNotification(); // Show notification when SOS is clicked
               },
               child: const Text("SOS", style: TextStyle(color: Colors.white)),
             ),
           ),
 
-          const SizedBox(
-              height: 20), // Space between SOS button and bottom section
+          const SizedBox(height: 20),
 
           // Bottom section with "Add Contacts" and "Start/Stop Sharing Location" options
           Expanded(
@@ -91,23 +132,16 @@ class Home extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Add contacts option on the left side
                   ElevatedButton.icon(
-                    onPressed: () {
-                      // Add contacts functionality here
-                    },
+                    onPressed: () {},
                     icon: const Icon(Icons.contacts),
                     label: const Text("Add Contacts"),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                     ),
                   ),
-
-                  // Start/Stop Sharing Location option on the right side
                   ElevatedButton.icon(
-                    onPressed: () {
-                      // Start/Stop sharing location functionality here
-                    },
+                    onPressed: () {},
                     icon: const Icon(Icons.location_on),
                     label: const Text("Start/Stop Sharing Location"),
                     style: ElevatedButton.styleFrom(
