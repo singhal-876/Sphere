@@ -1,8 +1,54 @@
 import 'package:flutter/material.dart';
 import 'contacts.dart';
 
-class Home extends StatelessWidget {
+
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  // FlutterLocalNotificationsPlugin instance
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    initializeNotifications();
+  }
+
+  void initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> showNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'sos_channel', // Channel ID
+      'SOS Notifications', // Channel Name
+      channelDescription: 'Notification when SOS is triggered',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin.show(
+      0, // Notification ID
+      'SOS Alert', // Notification title
+      'Calling and messaging your contacts', // Notification body
+      platformChannelSpecifics,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +75,6 @@ class Home extends StatelessWidget {
                       image: DecorationImage(
                         image: AssetImage('assets/images/watch.png'),
                         fit: BoxFit.cover,
-                      ),
                     ),
                   ),
                 ),
