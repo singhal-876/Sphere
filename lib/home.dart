@@ -1,54 +1,8 @@
 import 'package:flutter/material.dart';
 import 'contacts.dart';
 
-
-class Home extends StatefulWidget {
+class Home extends StatelessWidget {
   const Home({super.key});
-
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  // FlutterLocalNotificationsPlugin instance
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
-  @override
-  void initState() {
-    super.initState();
-    initializeNotifications();
-  }
-
-  void initializeNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  }
-
-  Future<void> showNotification() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'sos_channel', // Channel ID
-      'SOS Notifications', // Channel Name
-      channelDescription: 'Notification when SOS is triggered',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(
-      0, // Notification ID
-      'SOS Alert', // Notification title
-      'Calling and messaging your contacts', // Notification body
-      platformChannelSpecifics,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +29,7 @@ class _HomeState extends State<Home> {
                       image: DecorationImage(
                         image: AssetImage('assets/images/watch.png'),
                         fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -118,8 +73,7 @@ class _HomeState extends State<Home> {
                       content: Text("Calling and messaging your contacts")),
                 );
               },
-              child: const Text("SOS",
-                  style: TextStyle(color: Colors.white, fontSize: 50)),
+              child: const Text("SOS", style: TextStyle(color: Colors.white)),
             ),
           ),
           const SizedBox(height: 20),
