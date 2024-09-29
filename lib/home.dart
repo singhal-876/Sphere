@@ -7,9 +7,6 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Home"),
-      ),
       body: Column(
         children: [
           Container(
@@ -23,8 +20,10 @@ class Home extends StatelessWidget {
             child: Row(
               children: [
                 Flexible(
-                  flex: 2,
+                  flex: 3,
                   child: Container(
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    height: double.infinity,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('assets/images/watch.png'),
@@ -33,7 +32,9 @@ class Home extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(
+                    width: MediaQuery.of(context).size.width *
+                        0.1), // Updated this line
                 Flexible(
                   flex: 3,
                   child: Container(
@@ -73,7 +74,8 @@ class Home extends StatelessWidget {
                       content: Text("Calling and messaging your contacts")),
                 );
               },
-              child: const Text("SOS", style: TextStyle(color: Colors.white)),
+              child: const Text("SOS",
+                  style: TextStyle(color: Colors.white, fontSize: 50)),
             ),
           ),
           const SizedBox(height: 20),
