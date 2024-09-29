@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'contacts.dart';
+
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -52,35 +53,34 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Home"),
+      ),
       body: Column(
         children: [
-          // Top section with image and status container
           Container(
             margin: const EdgeInsets.only(top: 30),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(40),
               color: const Color.fromARGB(255, 223, 218, 226),
             ),
-            height:
-                MediaQuery.of(context).size.height * 0.3, // 30% of page height
+            height: MediaQuery.of(context).size.height * 0.3,
             padding: const EdgeInsets.all(10),
             child: Row(
               children: [
-                // Image on the left side
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.4,
-                  height: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/watch.png'),
-                      fit: BoxFit.cover,
+                Flexible(
+                  flex: 2,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/watch.png'),
+                        fit: BoxFit.cover,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-
-                // Status container on the right side
-                Expanded(
+                Flexible(
+                  flex: 3,
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -102,10 +102,7 @@ class _HomeState extends State<Home> {
               ],
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // SOS Button
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             width: double.infinity,
@@ -113,39 +110,46 @@ class _HomeState extends State<Home> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 padding: const EdgeInsets.all(60),
-                textStyle: const TextStyle(fontSize: 50),
                 shape: const CircleBorder(),
               ),
               onPressed: () {
-                showNotification(); // Show notification when SOS is clicked
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text("Calling and messaging your contacts")),
+                );
               },
-              child: const Text("SOS", style: TextStyle(color: Colors.white)),
+              child: const Text("SOS",
+                  style: TextStyle(color: Colors.white, fontSize: 50)),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Bottom section with "Add Contacts" and "Start/Stop Sharing Location" options
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.contacts),
-                    label: const Text("Add Contacts"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ContactsManager(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.contacts),
+                      label: const Text("Manage Contacts"),
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.location_on),
-                    label: const Text("Start/Stop Sharing Location"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Add Start/Stop sharing location functionality here
+                      },
+                      icon: const Icon(Icons.location_on),
+                      label: const Text("Start/Stop Sharing Location"),
                     ),
                   ),
                 ],
