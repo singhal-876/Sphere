@@ -1,87 +1,134 @@
+// ignore_for_file: avoid_print, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 import 'contacts.dart';
 import 'location_sharing.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({Key? key}) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  // FlutterLocalNotificationsPlugin instance
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  List<Contact> contacts = [];
 
   @override
   void initState() {
     super.initState();
     initializeNotifications();
+    loadContacts();
+    requestPermissions();
   }
 
-  // Initialize notifications and request permissions for Android 13+
-  void initializeNotifications() async {
-    // Android-specific initialization settings
+  Future<void> requestPermissions() async {
+    await Permission.sms.request();
+    await Permission.phone.request();
+  }
+
+  void loadContacts() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? contactsJson = prefs.getString('contacts');
+    if (contactsJson != null) {
+      List<dynamic> contactsList = jsonDecode(contactsJson);
+      setState(() {
+        contacts =
+            contactsList.map((contact) => Contact.fromMap(contact)).toList();
+      });
+    }
+  }
+
+  Future<void> initializeNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    // General initialization settings
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
-
-    // Initialize the notifications plugin
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-    // Request notification permission manually for Android 13+
-    await requestNotificationPermission();
   }
 
-  // Function to request notification permissions
-  Future<void> requestNotificationPermission() async {
-    // Check if the permission is already granted
-    if (await Permission.notification.isGranted) {
-      print("Notification permission already granted.");
-      return;
-    }
-
-    // Request permission if not granted
-    PermissionStatus status = await Permission.notification.request();
-
-    if (status.isGranted) {
-      print("Notification permission granted.");
-    } else if (status.isDenied) {
-      print("Notification permission denied.");
-    } else if (status.isPermanentlyDenied) {
-      // Open app settings for the user to manually grant permission
-      openAppSettings();
-    }
-  }
-
-  // Function to show the notification
   Future<void> showNotification() async {
-    // Notification details for Android
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'sos_channel', // Channel ID
-      'SOS Notifications', // Channel Name
+      'sos_channel',
+      'SOS Notifications',
       channelDescription: 'Notification when SOS is triggered',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
     );
-
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    // Show notification
     await flutterLocalNotificationsPlugin.show(
-      0, // Notification ID
-      'SOS Alert', // Notification title
-      'Calling and messaging your contacts', // Notification body
+      0,
+      'SOS Alert',
+      'Sending SOS messages and initiating call',
       platformChannelSpecifics,
+    );
+  }
+
+  Future<void> sendSOSMessages() async {
+    String message = "SOS! I need help!";
+    for (Contact contact in contacts) {
+      final Uri smsUri = Uri.parse(
+          'sms:${contact.number}?body=${Uri.encodeComponent(message)}');
+      try {
+        if (await canLaunchUrl(smsUri)) {
+          await launchUrl(smsUri);
+          print("SMS sent to ${contact.name}");
+        } else {
+          print("Could not launch SMS for ${contact.name}");
+        }
+      } catch (e) {
+        print("Error sending SMS to ${contact.name}: $e");
+      }
+    }
+  }
+
+  Future<void> callFirstContact() async {
+    if (contacts.isNotEmpty) {
+      final Uri phoneUri = Uri.parse('tel:${contacts.first.number}');
+      try {
+        if (await canLaunchUrl(phoneUri)) {
+          await launchUrl(phoneUri);
+          print("Calling ${contacts.first.name}");
+        } else {
+          print("Could not launch call for ${contacts.first.name}");
+        }
+      } catch (e) {
+        print("Error calling ${contacts.first.name}: $e");
+      }
+    } else {
+      print("No contacts available to call");
+    }
+  }
+
+  Future<void> sendSOS() async {
+    if (contacts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("No contacts available. Please add contacts first.")),
+      );
+      return;
+    }
+
+    await showNotification();
+
+    // Send SOS messages to all contacts
+    await sendSOSMessages();
+
+    // Call the first contact
+    await callFirstContact();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("SOS alert sent and call initiated")),
     );
   }
 
@@ -137,7 +184,6 @@ class _HomeState extends State<Home> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             width: double.infinity,
@@ -147,16 +193,7 @@ class _HomeState extends State<Home> {
                 padding: const EdgeInsets.all(60),
                 shape: const CircleBorder(),
               ),
-              onPressed: () {
-                // Show notification when SOS button is pressed
-                showNotification();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Calling and messaging your contacts"),
-                  ),
-                );
-              },
+              onPressed: sendSOS,
               child: const Text("SOS",
                   style: TextStyle(color: Colors.white, fontSize: 50)),
             ),

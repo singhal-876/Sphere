@@ -29,11 +29,10 @@ class ContactsManager extends StatefulWidget {
   const ContactsManager({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ContactsManagerState createState() => _ContactsManagerState();
+  ContactsManagerState createState() => ContactsManagerState();
 }
 
-class _ContactsManagerState extends State<ContactsManager> {
+class ContactsManagerState extends State<ContactsManager> {
   List<Contact> contacts = [];
   final TextEditingController nameController = TextEditingController();
   String completePhoneNumber = '';
@@ -96,6 +95,16 @@ class _ContactsManagerState extends State<ContactsManager> {
       contacts.remove(contact);
     });
     saveContacts();
+  }
+
+  // New method to get all contacts
+  List<Contact> getAllContacts() {
+    return contacts;
+  }
+
+  // New method to get the first contact
+  Contact? getFirstContact() {
+    return contacts.isNotEmpty ? contacts.first : null;
   }
 
   @override
