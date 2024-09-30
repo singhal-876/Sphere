@@ -1,9 +1,89 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'contacts.dart';
 import 'location_sharing.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  // FlutterLocalNotificationsPlugin instance
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    initializeNotifications();
+  }
+
+  // Initialize notifications and request permissions for Android 13+
+  void initializeNotifications() async {
+    // Android-specific initialization settings
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    // General initialization settings
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    // Initialize the notifications plugin
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+    // Request notification permission manually for Android 13+
+    await requestNotificationPermission();
+  }
+
+  // Function to request notification permissions
+  Future<void> requestNotificationPermission() async {
+    // Check if the permission is already granted
+    if (await Permission.notification.isGranted) {
+      print("Notification permission already granted.");
+      return;
+    }
+
+    // Request permission if not granted
+    PermissionStatus status = await Permission.notification.request();
+
+    if (status.isGranted) {
+      print("Notification permission granted.");
+    } else if (status.isDenied) {
+      print("Notification permission denied.");
+    } else if (status.isPermanentlyDenied) {
+      // Open app settings for the user to manually grant permission
+      openAppSettings();
+    }
+  }
+
+  // Function to show the notification
+  Future<void> showNotification() async {
+    // Notification details for Android
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'sos_channel', // Channel ID
+      'SOS Notifications', // Channel Name
+      channelDescription: 'Notification when SOS is triggered',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // Show notification
+    await flutterLocalNotificationsPlugin.show(
+      0, // Notification ID
+      'SOS Alert', // Notification title
+      'Calling and messaging your contacts', // Notification body
+      platformChannelSpecifics,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,9 +148,13 @@ class Home extends StatelessWidget {
                 shape: const CircleBorder(),
               ),
               onPressed: () {
+                // Show notification when SOS button is pressed
+                showNotification();
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text("Calling and messaging your contacts")),
+                    content: Text("Calling and messaging your contacts"),
+                  ),
                 );
               },
               child: const Text("SOS",
