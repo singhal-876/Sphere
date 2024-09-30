@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'contacts.dart';
+import 'location_sharing.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -32,9 +33,7 @@ class Home extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(
-                    width: MediaQuery.of(context).size.width *
-                        0.1), // Updated this line
+                SizedBox(width: MediaQuery.of(context).size.width * 0.1),
                 Flexible(
                   flex: 3,
                   child: Container(
@@ -102,10 +101,15 @@ class Home extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Add Start/Stop sharing location functionality here
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LocationSharing(),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.location_on),
-                      label: const Text("Start/Stop Sharing Location"),
+                      label: const Text("Location Sharing"),
                     ),
                   ),
                 ],

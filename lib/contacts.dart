@@ -29,6 +29,7 @@ class ContactsManager extends StatefulWidget {
   const ContactsManager({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ContactsManagerState createState() => _ContactsManagerState();
 }
 

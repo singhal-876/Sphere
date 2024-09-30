@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sphere/bottom_nav_bar.dart';
 import 'package:sphere/home.dart';
+import 'package:sphere/location_sharing.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -11,11 +12,8 @@ void main() {
       primaryColor: const Color.fromARGB(255, 247, 244, 233),
       scaffoldBackgroundColor: const Color.fromARGB(255, 247, 244, 233),
       appBarTheme: const AppBarTheme(
-        backgroundColor:
-            Color.fromARGB(255, 223, 218, 226), // Default AppBar color
-        titleTextStyle: TextStyle(
-            color: Colors.black,
-            fontSize: 20), // Optional: Customize AppBar title text style
+        backgroundColor: Color.fromARGB(255, 223, 218, 226),
+        titleTextStyle: TextStyle(color: Colors.black, fontSize: 20),
       ),
     ),
   ));
@@ -25,18 +23,16 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   int selectedItem = 0;
 
-  // List of pages to show based on bottom menu selection
   final List<Widget> pages = [
     const Home(),
     const Community(),
-    const Location(),
+    const LocationSharing(),
     const Favourites()
   ];
 
@@ -47,7 +43,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text("Sphere"),
       ),
       drawer: const DrawerMenu(),
-      body: pages[selectedItem], // Display the selected page content
+      body: pages[selectedItem],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.pink[100],
@@ -65,7 +61,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: selectedItem,
         onTap: (value) {
           setState(() {
-            selectedItem = value; // Update selected item and refresh body
+            selectedItem = value;
           });
         },
       ),
