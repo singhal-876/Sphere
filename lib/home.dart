@@ -5,12 +5,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:convert';
 import 'contacts.dart';
-import 'location_sharing.dart';
+import 'ble_device_page.dart';
 
 class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+  const Home({super.key});
 
   @override
   State<Home> createState() => _HomeState();
@@ -20,6 +21,8 @@ class _HomeState extends State<Home> {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   List<Contact> contacts = [];
+  final FlutterReactiveBle _ble = FlutterReactiveBle();
+  bool _bluetoothState = false;
 
   @override
   void initState() {
@@ -27,11 +30,15 @@ class _HomeState extends State<Home> {
     initializeNotifications();
     loadContacts();
     requestPermissions();
+    _checkBluetoothState();
   }
 
   Future<void> requestPermissions() async {
     await Permission.sms.request();
     await Permission.phone.request();
+    await Permission.bluetoothScan.request();
+    await Permission.bluetoothConnect.request();
+    await Permission.location.request();
   }
 
   void loadContacts() async {
@@ -132,6 +139,27 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Future<void> _checkBluetoothState() async {
+    BleStatus bleStatus = await _ble.statusStream.first; // Listen to the stream
+    _bluetoothState =
+        bleStatus == BleStatus.ready; // Check if Bluetooth is ready
+    setState(() {}); // Update the UI
+  }
+
+  void _navigateToBLEDevicesPage() async {
+    if (_bluetoothState) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const BLEDevicesPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Please enable Bluetooth to scan for devices")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,16 +249,17 @@ class _HomeState extends State<Home> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LocationSharing(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.location_on),
-                      label: const Text("Location Sharing"),
+                      onPressed: _navigateToBLEDevicesPage,
+                      icon: Icon(_bluetoothState
+                          ? Icons.bluetooth
+                          : Icons.bluetooth_disabled),
+                      label: Text(_bluetoothState
+                          ? "Scan BLE Devices"
+                          : "Bluetooth OFF"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _bluetoothState ? Colors.blue : Colors.grey,
+                      ),
                     ),
                   ),
                 ],

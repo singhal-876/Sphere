@@ -35,7 +35,7 @@ class _HomePageState extends State<HomePage> {
     const Home(),
     const Community(),
     const LocationSharing(),
-    const Favourites()
+    const Favourites(),
   ];
 
   @override
