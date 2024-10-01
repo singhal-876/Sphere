@@ -1,23 +1,156 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'community_page.dart'; // Import the CommunityPage here
 import 'ble_device_page.dart'; // Import BLE device page for heart rate monitor
 import 'home.dart';
-import 'bottom_nav_bar.dart'; // Assuming you have a separate file for community
+// import 'bottom_nav_bar.dart'; // Assuming you have a separate file for community
 import 'location_sharing.dart'; // Assuming you have a separate file for location sharing
 
-void main() {
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    title: "Sphere",
-    home: const HomePage(),
-    theme: ThemeData(
-      primaryColor: const Color.fromARGB(255, 247, 244, 233),
-      scaffoldBackgroundColor: const Color.fromARGB(255, 247, 244, 233),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color.fromARGB(255, 223, 218, 226),
-        titleTextStyle: TextStyle(color: Colors.black, fontSize: 20),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Sphere',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
-    ),
-  ));
+      home: const AuthPage(), // Set AuthPage as the home widget
+    );
+  }
+}
+
+class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
+  @override
+  _AuthPageState createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  bool isSignIn = true;
+  String email = '';
+  String password = '';
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  Future<void> signIn() async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const HomePage())); // Navigate to HomePage
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> signUp() async {
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Store the email in Firestore
+      await _firestore.collection('users').doc(userCredential.user?.uid).set({
+        'email': email,
+      });
+
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const HomePage())); // Navigate to HomePage
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isSignIn ? 'Login' : 'Sign Up'),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: screenWidth > 600 ? 400 : screenWidth * 0.9,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        email = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        password = value;
+                      });
+                    },
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSignIn ? signIn : signUp,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      ),
+                      child: Text(isSignIn ? 'Login' : 'Sign Up'),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        isSignIn = !isSignIn;
+                      });
+                    },
+                    child: Text(isSignIn
+                        ? 'Create an account'
+                        : 'Already have an account?'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class HomePage extends StatefulWidget {
@@ -32,7 +165,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> pages = [
     const Home(),
-    const Community(),
+    const CommunityPage(),
     const LocationSharing(),
     const BLEDevicesPage(), // Heart Rate via BLE Devices
   ];
