@@ -1,9 +1,8 @@
-// ignore_for_file: library_private_types_in_public_api
-
 import 'package:flutter/material.dart';
-import 'package:sphere/bottom_nav_bar.dart';
-import 'package:sphere/home.dart';
-import 'package:sphere/location_sharing.dart';
+import 'ble_device_page.dart'; // Import BLE device page for heart rate monitor
+import 'home.dart';
+import 'bottom_nav_bar.dart'; // Assuming you have a separate file for community
+import 'location_sharing.dart'; // Assuming you have a separate file for location sharing
 
 void main() {
   runApp(MaterialApp(
@@ -35,7 +34,7 @@ class _HomePageState extends State<HomePage> {
     const Home(),
     const Community(),
     const LocationSharing(),
-    const Favourites(),
+    const BLEDevicesPage(), // Heart Rate via BLE Devices
   ];
 
   @override
@@ -58,7 +57,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
               icon: Icon(Icons.location_on), label: "Location"),
           BottomNavigationBarItem(
-              icon: Icon(Icons.favorite), label: "Favourites"),
+              icon: Icon(Icons.favorite), label: "Heart Rate"),
         ],
         currentIndex: selectedItem,
         onTap: (value) {
@@ -82,18 +81,14 @@ class DrawerMenu extends StatelessWidget {
         children: const <Widget>[
           UserAccountsDrawerHeader(
             decoration: BoxDecoration(
-              // Adding a background image
               image: DecorationImage(
-                image: AssetImage(
-                    'assets/images/bg_drawer_img.png'), // URL of background image
-                fit: BoxFit.cover, // Make image cover the entire header
+                image: AssetImage('assets/images/bg_drawer_img.png'),
+                fit: BoxFit.cover,
               ),
             ),
-            // Adding CircleAvatar for the profile image
             currentAccountPicture: CircleAvatar(
-              radius: 80, // Size of the avatar
-              backgroundImage: AssetImage(
-                  'assets/images/sphere.png'), // URL of the avatar image
+              radius: 80,
+              backgroundImage: AssetImage('assets/images/sphere.png'),
             ),
             accountName: Text(
               "Sphere_username_1",
@@ -102,7 +97,6 @@ class DrawerMenu extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             accountEmail: Text(
               "username1@gmail.com",
               style: TextStyle(

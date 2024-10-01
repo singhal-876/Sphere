@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'dart:async'; // Import for StreamSubscription
+import 'dart:async';
+
+import 'package:sphere/heart_rate_monitor_page.dart'; // Import for StreamSubscription
 
 class BLEDevicesPage extends StatefulWidget {
   const BLEDevicesPage({super.key});
@@ -40,18 +42,35 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
     super.dispose();
   }
 
-  void _connectToDevice(DiscoveredDevice device) async {
-    final connection =
-        _ble.connectToDevice(id: device.id).listen((connectionState) {
+  void _connectToDevice(DiscoveredDevice device) {
+    final connectionStream = _ble.connectToDevice(id: device.id);
+
+    connectionStream.listen((connectionState) {
       print('Connection state: $connectionState');
+
+      if (connectionState.connectionState == DeviceConnectionState.connected) {
+        // Navigate to the heart rate monitor page when the device is successfully connected
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HeartRateMonitorPage(device: device),
+          ),
+        );
+      } else if (connectionState.connectionState ==
+          DeviceConnectionState.disconnected) {
+        // Handle disconnection if necessary
+        print('Device disconnected');
+      }
     }, onError: (error) {
+      // Handle connection error
       print('Connection error: $error');
     });
-
-    // Example wait before disconnecting or doing further work
-    await Future.delayed(const Duration(seconds: 5));
-    connection.cancel();
   }
+
+  // Example wait before disconnecting or doing further work
+  //   await Future.delayed(Duration(seconds: 5));
+  //   connection.cancel();
+  // }
 
   @override
   Widget build(BuildContext context) {
