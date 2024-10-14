@@ -66,7 +66,7 @@ class _CommunityPageState extends State<CommunityPage> {
         title: const Text('Nearby Users'),
       ),
       body: _currentPosition == null
-          ? Center(
+          ? const Center(
               child:
                   CircularProgressIndicator()) // Show loading indicator if no location yet
           : Column(

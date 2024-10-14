@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:convert';
 import 'contacts.dart';
-import 'ble_device_page.dart';
+import 'ble_devices_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -150,7 +150,7 @@ class _HomeState extends State<Home> {
     if (_bluetoothState) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const BLEDevicesPage()),
+        MaterialPageRoute(builder: (context) => BLEDevicesPage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

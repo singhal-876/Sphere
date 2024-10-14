@@ -1,14 +1,9 @@
-// ignore_for_file: avoid_print, library_private_types_in_public_api
-
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:async';
-
-import 'package:sphere/heart_rate_monitor_page.dart'; // Import for StreamSubscription
+import 'heart_rate_monitor_page.dart'; // Import updated heart rate monitor page
 
 class BLEDevicesPage extends StatefulWidget {
-  const BLEDevicesPage({super.key});
-
   @override
   _BLEDevicesPageState createState() => _BLEDevicesPageState();
 }
@@ -42,35 +37,15 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
     super.dispose();
   }
 
-  void _connectToDevice(DiscoveredDevice device) {
-    final connectionStream = _ble.connectToDevice(id: device.id);
-
-    connectionStream.listen((connectionState) {
-      print('Connection state: $connectionState');
-
-      if (connectionState.connectionState == DeviceConnectionState.connected) {
-        // Navigate to the heart rate monitor page when the device is successfully connected
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HeartRateMonitorPage(device: device),
-          ),
-        );
-      } else if (connectionState.connectionState ==
-          DeviceConnectionState.disconnected) {
-        // Handle disconnection if necessary
-        print('Device disconnected');
-      }
-    }, onError: (error) {
-      // Handle connection error
-      print('Connection error: $error');
-    });
+  void _connectToDevice(DiscoveredDevice device) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HeartRateMonitorPage(
+            device: device), // Navigate to the updated HeartRateMonitorPage
+      ),
+    );
   }
-
-  // Example wait before disconnecting or doing further work
-  //   await Future.delayed(Duration(seconds: 5));
-  //   connection.cancel();
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +61,8 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
                 ? _devicesList[index].name
                 : "Unnamed Device"),
             subtitle: Text(_devicesList[index].id),
-            onTap: () => _connectToDevice(_devicesList[index]),
+            onTap: () => _connectToDevice(
+                _devicesList[index]), // Connect to selected device
           );
         },
       ),

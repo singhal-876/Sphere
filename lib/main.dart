@@ -1,21 +1,21 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'community_page.dart'; // Import the CommunityPage here
-import 'ble_device_page.dart'; // Import BLE device page for heart rate monitor
-import 'home.dart';
-// import 'bottom_nav_bar.dart'; // Assuming you have a separate file for community
-import 'location_sharing.dart'; // Assuming you have a separate file for location sharing
+import 'package:sphere/ble_devices_page.dart';
+import 'community_page.dart'; // Community Page
+// import 'ble_devices_page.dart'; // BLE device page for heart rate monitor
+import 'location_sharing.dart'; // Location Sharing Page
+import 'home.dart'; // Home Page
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  runApp(const SphereApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SphereApp extends StatelessWidget {
+  const SphereApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
     const Home(),
     const CommunityPage(),
     const LocationSharing(),
-    const BLEDevicesPage(), // Heart Rate via BLE Devices
+    BLEDevicesPage(), // Heart Rate via BLE Devices
   ];
 
   @override
