@@ -11,13 +11,6 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
@@ -25,7 +18,28 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
-
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+// android {
+//     namespace = "com.example.sphere"
+//     compileSdk = flutter.compileSdkVersion
+//     ndkVersion = flutter.ndkVersion
+
+//     defaultConfig {
+//         applicationId = "com.example.sphere"
+//         // You can update the following values to match your application needs.
+//         // For more information, see: https://flutter.dev/to/review-gradle-config.
+//         minSdkVersion 23
+//         targetSdk = flutter.targetSdkVersion
+//         versionCode = flutter.versionCode
+//         versionName = flutter.versionName
+//     }
+// }

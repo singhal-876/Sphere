@@ -4,6 +4,8 @@ import 'dart:async';
 import 'heart_rate_monitor_page.dart'; // Import updated heart rate monitor page
 
 class BLEDevicesPage extends StatefulWidget {
+  const BLEDevicesPage({super.key});
+
   @override
   _BLEDevicesPageState createState() => _BLEDevicesPageState();
 }

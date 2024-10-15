@@ -3,10 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sphere/ble_devices_page.dart';
-import 'community_page.dart'; // Community Page
+import 'package:sphere/nearby_users_service.dart';
+// import 'community_page.dart';
 // import 'ble_devices_page.dart'; // BLE device page for heart rate monitor
 import 'location_sharing.dart'; // Location Sharing Page
-import 'home.dart'; // Home Page
+import 'home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -165,7 +166,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> pages = [
     const Home(),
-    const CommunityPage(),
+    NearbyUsersPage(),
     const LocationSharing(),
     BLEDevicesPage(), // Heart Rate via BLE Devices
   ];

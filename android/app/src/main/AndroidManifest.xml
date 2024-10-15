@@ -7,7 +7,6 @@
          FlutterApplication and put your custom class here. -->
 
 
-    <!-- Permissions options for the location group -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.SEND_SMS"/>
@@ -66,7 +65,7 @@
             <data android:scheme="sms" />
         </intent>
         <intent>
-            <action android:name="android.intent.action.VIEW" />
+            <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
         </intent>
     </queries>
