@@ -1,18 +1,38 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sphere/ble_devices_page.dart';
+import 'package:sphere/esp32.dart';
 import 'package:sphere/nearby_users_service.dart';
-// import 'community_page.dart';
-// import 'ble_devices_page.dart'; // BLE device page for heart rate monitor
 import 'location_sharing.dart'; // Location Sharing Page
 import 'home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await _requestPermissions();
   runApp(const SphereApp());
+}
+
+Future<void> _requestPermissions() async {
+  await [
+    Permission.location,
+    Permission.storage,
+    Permission.bluetooth,
+    Permission.bluetoothScan,
+    Permission.bluetoothConnect,
+  ].request();
+
+  if (await Permission.bluetoothScan.isDenied) {
+    await Permission.bluetoothScan.request();
+  }
+  if (await Permission.bluetoothConnect.isDenied) {
+    await Permission.bluetoothConnect.request();
+  }
 }
 
 class SphereApp extends StatelessWidget {
@@ -26,7 +46,31 @@ class SphereApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const AuthPage(), // Set AuthPage as the home widget
+      home: const AuthCheck(), // Set AuthCheck as the home widget
+    );
+  }
+}
+
+class AuthCheck extends StatelessWidget {
+  const AuthCheck({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+
+    return StreamBuilder<User?>(
+      stream: _auth.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.active) {
+          final User? user = snapshot.data;
+          if (user != null) {
+            return const HomePage(); // User is logged in, navigate to HomePage
+          }
+          return const AuthPage(); // User is not logged in, show AuthPage
+        }
+        return const Center(
+            child: CircularProgressIndicator()); // Show loading indicator
+      },
     );
   }
 }
@@ -49,9 +93,9 @@ class _AuthPageState extends State<AuthPage> {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const HomePage())); // Navigate to HomePage
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
     } catch (e) {
       print(e);
     }
@@ -59,8 +103,11 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> signUp() async {
     try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       // Store the email in Firestore
       await _firestore.collection('users').doc(userCredential.user?.uid).set({
@@ -68,9 +115,9 @@ class _AuthPageState extends State<AuthPage> {
       });
 
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const HomePage())); // Navigate to HomePage
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
     } catch (e) {
       print(e);
     }
@@ -169,6 +216,7 @@ class _HomePageState extends State<HomePage> {
     NearbyUsersPage(),
     const LocationSharing(),
     BLEDevicesPage(), // Heart Rate via BLE Devices
+    const ESP32IntegrationPage(), // ESP32 Page
   ];
 
   @override
@@ -192,6 +240,7 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.location_on), label: "Location"),
           BottomNavigationBarItem(
               icon: Icon(Icons.favorite), label: "Heart Rate"),
+          BottomNavigationBarItem(icon: Icon(Icons.bluetooth), label: "ESP32"),
         ],
         currentIndex: selectedItem,
         onTap: (value) {
@@ -248,8 +297,8 @@ class DrawerMenu extends StatelessWidget {
             title: Text('Settings'),
           ),
           ListTile(
-            leading: Icon(Icons.contact_mail),
-            title: Text('Contact'),
+            leading: Icon(Icons.logout),
+            title: Text('LogOut'),
           ),
         ],
       ),
