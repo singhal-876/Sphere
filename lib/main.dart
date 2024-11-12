@@ -215,7 +215,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> pages = [
     const Home(),
     NearbyUsersPage(),
-    const LocationSharing(),
+    LocationSharingScreen(),
     BLEDevicesPage(), // Heart Rate via BLE Devices
     const ESP32IntegrationPage(), // ESP32 Page
   ];
