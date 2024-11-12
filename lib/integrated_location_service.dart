@@ -101,17 +101,20 @@ class IntegratedLocationService {
       double radiusInMeters) async {
     try {
       User? currentUser = _auth.currentUser;
-      if (currentUser == null)
+      if (currentUser == null) {
         throw Exception('No user is currently signed in');
+      }
 
       DocumentSnapshot userDoc =
           await _firestore.collection('users').doc(currentUser.uid).get();
-      if (!userDoc.exists)
+      if (!userDoc.exists) {
         throw Exception('Current user document does not exist in Firestore');
+      }
 
       GeoPoint? userLocation = userDoc.get('location') as GeoPoint?;
-      if (userLocation == null)
+      if (userLocation == null) {
         throw Exception('Current user location is not set in Firestore');
+      }
 
       QuerySnapshot querySnapshot = await _firestore.collection('users').get();
 

@@ -56,10 +56,10 @@ class AuthCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FirebaseAuth _auth = FirebaseAuth.instance;
+    final FirebaseAuth auth = FirebaseAuth.instance;
 
     return StreamBuilder<User?>(
-      stream: _auth.authStateChanges(),
+      stream: auth.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           final User? user = snapshot.data;
@@ -256,13 +256,27 @@ class _HomePageState extends State<HomePage> {
 class DrawerMenu extends StatelessWidget {
   const DrawerMenu({super.key});
 
+  // Sign out function that also handles navigation
+  Future<void> _signOutAndNavigate(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthPage()),
+        (Route<dynamic> route) => false, // removes all previous routes
+      );
+    } catch (e) {
+      print('Error signing out: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: const <Widget>[
-          UserAccountsDrawerHeader(
+        children: <Widget>[
+          const UserAccountsDrawerHeader(
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/bg_drawer_img.png'),
@@ -289,16 +303,26 @@ class DrawerMenu extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: Icon(Icons.home),
-            title: Text('Home'),
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.pop(context);
+            },
           ),
           ListTile(
-            leading: Icon(Icons.settings),
-            title: Text('Settings'),
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.pop(context);
+            },
           ),
           ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('LogOut'),
+            leading: const Icon(Icons.logout),
+            title: const Text('Log Out'),
+            onTap: () {
+              _signOutAndNavigate(
+                  context); // Call sign-out and navigate function
+            },
           ),
         ],
       ),
