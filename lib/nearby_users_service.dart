@@ -5,6 +5,8 @@ import 'package:geolocator/geolocator.dart';
 import 'integrated_location_service.dart';
 
 class NearbyUsersPage extends StatefulWidget {
+  const NearbyUsersPage({super.key});
+
   @override
   _NearbyUsersPageState createState() => _NearbyUsersPageState();
 }
@@ -155,8 +157,8 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _getCurrentPositionAndFetchUsers,
-        child: Icon(Icons.refresh),
         tooltip: 'Refresh Nearby Users',
+        child: Icon(Icons.refresh),
       ),
     );
   }

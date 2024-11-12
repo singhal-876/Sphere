@@ -18,7 +18,7 @@ class _ESP32IntegrationPageState extends State<ESP32IntegrationPage> {
   late DiscoveredDevice _connectedDevice;
   late StreamSubscription<DiscoveredDevice> _scanSubscription;
   bool _scanning = false;
-  List<DiscoveredDevice> _devices = [];
+  final List<DiscoveredDevice> _devices = [];
 
   // ESP32 UUIDs
   final Uuid _esp32ServiceUuid =
@@ -66,7 +66,7 @@ class _ESP32IntegrationPageState extends State<ESP32IntegrationPage> {
   Future<void> _connectToDevice(DiscoveredDevice device) async {
     try {
       // Connecting to the device
-      await _ble.connectToDevice(
+      _ble.connectToDevice(
         id: device.id,
         servicesWithCharacteristicsToDiscover: {
           _esp32ServiceUuid: [_esp32CharacteristicUuid],
