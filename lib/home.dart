@@ -150,7 +150,7 @@ class _HomeState extends State<Home> {
     if (_bluetoothState) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BLEDevicesPage()),
+        MaterialPageRoute(builder: (context) => BleScannerPage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

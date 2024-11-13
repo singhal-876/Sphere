@@ -9,6 +9,7 @@ import 'package:sphere/ble_devices_page.dart';
 import 'package:sphere/esp32.dart';
 import 'package:sphere/nearby_users_service.dart';
 import 'package:sphere/splash_screen.dart';
+// import 'threat_detection.dart';
 import 'location_sharing.dart'; // Location Sharing Page
 import 'home.dart';
 
@@ -16,6 +17,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await _requestPermissions();
+  // await ThreatDetection.loadModels();
+  // await ThreatDetection.initNotifications();
   runApp(SphereApp());
 }
 
@@ -216,7 +219,7 @@ class _HomePageState extends State<HomePage> {
     const Home(),
     NearbyUsersPage(),
     LocationSharingScreen(),
-    BLEDevicesPage(), // Heart Rate via BLE Devices
+    BleScannerPage(), // Heart Rate via BLE Devices
     const ESP32IntegrationPage(), // ESP32 Page
   ];
 
