@@ -14,8 +14,7 @@ import 'home.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await _requestPermissions();
-  runApp(SphereApp());
+  runApp(const SphereApp());
 }
 
 Future<void> _requestPermissions() async {
@@ -215,7 +214,7 @@ class _HomePageState extends State<HomePage> {
     const Home(),
     NearbyUsersPage(),
     LocationSharingScreen(),
-    BLEDevicesPage(), // Heart Rate via BLE Devices
+    BleScannerPage(), // Heart Rate via BLE Devices
   ];
 
   @override

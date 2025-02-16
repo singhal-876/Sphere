@@ -4,19 +4,16 @@ import 'dart:async';
 
 class HeartRateMonitorPage extends StatefulWidget {
   final DiscoveredDevice device;
-
-  const HeartRateMonitorPage({Key? key, required this.device})
-      : super(key: key);
+  const HeartRateMonitorPage({super.key, required this.device});
 
   @override
-  _HeartRateMonitorPageState createState() => _HeartRateMonitorPageState();
+  State<HeartRateMonitorPage> createState() => _HeartRateMonitorPageState();
 }
 
 class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
-  late QualifiedCharacteristic _heartRateCharacteristic;
-  StreamSubscription<List<int>>? _heartRateSubscription;
   StreamSubscription<ConnectionStateUpdate>? _connectionSubscription;
+  StreamSubscription<List<int>>? _heartRateSubscription;
 
   int? _heartRate;
   bool _isConnected = false;
@@ -25,69 +22,39 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   @override
   void initState() {
     super.initState();
-    _connectToDevice(widget.device);
+    _connectToDevice();
   }
 
-  Future<void> _connectToDevice(DiscoveredDevice device) async {
-    _connectionSubscription = _ble.connectToDevice(id: device.id).listen(
-      (connectionState) {
-        if (connectionState.connectionState ==
-            DeviceConnectionState.connected) {
-          setState(() {
-            _isConnected = true;
-            _isLoading = false;
-          });
-          _discoverServices();
-        } else if (connectionState.connectionState ==
-            DeviceConnectionState.disconnected) {
-          setState(() {
-            _isConnected = false;
-          });
-        }
-      },
-      onError: (error) {
+  void _connectToDevice() {
+    _connectionSubscription = _ble.connectToDevice(id: widget.device.id).listen(
+      (update) {
         setState(() {
+          _isConnected =
+              update.connectionState == DeviceConnectionState.connected;
           _isLoading = false;
         });
-        _showErrorDialog('Connection failed: $error');
+        if (_isConnected) _startHeartRateMonitoring();
       },
+      onError: (error) => _showErrorDialog('Connection failed: $error'),
     );
   }
 
-  Future<void> _discoverServices() async {
-    try {
-      final services = await _ble.discoverServices(widget.device.id);
-      for (var service in services) {
-        for (var characteristic in service.characteristics) {
-          if (characteristic.characteristicId ==
-              Uuid.parse("00002a37-0000-1000-8000-00805f9b34fb")) {
-            _heartRateCharacteristic = QualifiedCharacteristic(
-              serviceId: service.serviceId,
-              characteristicId: characteristic.characteristicId,
-              deviceId: widget.device.id,
-            );
-            _startHeartRateMonitoring();
-          }
-        }
-      }
-    } catch (e) {
-      _showErrorDialog('Failed to discover services: $e');
-    }
-  }
-
   void _startHeartRateMonitoring() {
+    final characteristic = QualifiedCharacteristic(
+      serviceId: Uuid.parse("0000180D-0000-1000-8000-00805F9B34FB"),
+      characteristicId: Uuid.parse("00002A37-0000-1000-8000-00805F9B34FB"),
+      deviceId: widget.device.id,
+    );
+
     _heartRateSubscription =
-        _ble.subscribeToCharacteristic(_heartRateCharacteristic).listen(
+        _ble.subscribeToCharacteristic(characteristic).listen(
       (data) {
         if (data.isNotEmpty) {
-          setState(() {
-            _heartRate = data[1]; // Assuming second byte contains heart rate
-          });
+          setState(() => _heartRate = data[1]);
         }
       },
-      onError: (error) {
-        _showErrorDialog('Heart rate subscription error: $error');
-      },
+      onError: (error) =>
+          _showErrorDialog('Heart rate subscription error: $error'),
     );
   }
 
@@ -109,89 +76,21 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
 
   @override
   void dispose() {
-    _heartRateSubscription?.cancel();
     _connectionSubscription?.cancel();
+    _heartRateSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/mountain.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Center(
-            child: _isLoading
-                ? const CircularProgressIndicator()
-                : _isConnected
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Your Stats',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Heart Rate',
-                            style: TextStyle(
-                              fontSize: 24,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.purple[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.favorite,
-                                  color: Colors.red,
-                                  size: 32,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  _heartRate != null
-                                      ? '$_heartRate bpm'
-                                      : 'Waiting for data...',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '*Above 100 bpm emergency call will activate',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.purple[200],
-                            ),
-                          ),
-                        ],
-                      )
-                    : const Text(
-                        'Device not connected.',
-                        style: TextStyle(fontSize: 18),
-                      ),
-          ),
-        ],
+      appBar: AppBar(title: const Text('Heart Rate Monitor')),
+      body: Center(
+        child: _isLoading
+            ? const CircularProgressIndicator()
+            : _isConnected
+                ? Text('Heart Rate: ${_heartRate ?? 'Waiting...'} bpm')
+                : const Text('Not connected'),
       ),
     );
   }

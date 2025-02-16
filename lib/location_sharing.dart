@@ -3,7 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 class LocationSharingScreen extends StatefulWidget {
-  const LocationSharingScreen({Key? key}) : super(key: key);
+  const LocationSharingScreen({super.key});
 
   @override
   _LocationSharingScreenState createState() => _LocationSharingScreenState();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'integrated_location_service.dart';
 
 class NearbyUsersPage extends StatefulWidget {
@@ -21,25 +22,54 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
   List<Map<String, dynamic>> nearbyUsers = [];
   bool _isSharing = false;
   Position? _currentPosition;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _initializeLocationService();
+    // Set up real-time listener for users collection
+    _setupUsersListener();
+  }
+
+  void _setupUsersListener() {
+    _firestore.collection('users').snapshots().listen((snapshot) {
+      _updateNearbyUsers(snapshot);
+    }, onError: (error) {
+      print('Error in users stream: $error');
+    });
   }
 
   Future<void> _initializeLocationService() async {
-    await _locationService.initialize();
-    setState(() {
-      _isSharing = _locationService.isSharing;
-    });
-    _getCurrentPositionAndFetchUsers();
+    setState(() => _isLoading = true);
+    try {
+      await _locationService.initialize();
+      setState(() {
+        _isSharing = _locationService.isSharing;
+      });
+      await _getCurrentPositionAndFetchUsers();
+    } catch (e) {
+      print('Error initializing location service: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initialize location service: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _getCurrentPositionAndFetchUsers() async {
     try {
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Update current user's location in Firestore
+      await _firestore.collection('users').doc(_auth.currentUser?.uid).update({
+        'location': GeoPoint(position.latitude, position.longitude),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
       setState(() {
         _currentPosition = position;
       });
@@ -53,6 +83,36 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
     }
   }
 
+  void _updateNearbyUsers(QuerySnapshot snapshot) {
+    if (_currentPosition == null) return;
+
+    List<Map<String, dynamic>> users = snapshot.docs
+        .where((doc) => doc.id != _auth.currentUser?.uid)
+        .map((doc) {
+      var data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id;
+      return data;
+    }).where((user) {
+      GeoPoint? userLocation = user['location'] as GeoPoint?;
+      if (userLocation == null) return false;
+
+      double distance = Geolocator.distanceBetween(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        userLocation.latitude,
+        userLocation.longitude,
+      );
+
+      // Calculate distance in meters
+      user['distance'] = distance.round();
+      return distance <= 5000; // 5km radius
+    }).toList();
+
+    setState(() {
+      nearbyUsers = users;
+    });
+  }
+
   Future<void> _getUserEmail() async {
     final user = _auth.currentUser;
     setState(() {
@@ -62,59 +122,56 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
 
   Future<void> _getNearbyUsers() async {
     if (_auth.currentUser == null) {
-      print('User is not authenticated');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please sign in to see nearby users')),
+        const SnackBar(content: Text('Please sign in to see nearby users')),
       );
       return;
     }
 
     try {
       QuerySnapshot querySnapshot = await _firestore.collection('users').get();
-
-      List<Map<String, dynamic>> users = querySnapshot.docs
-          .where((doc) => doc.id != _auth.currentUser?.uid)
-          .map((doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).where((user) {
-        GeoPoint? userLocation = user['location'] as GeoPoint?;
-        if (userLocation == null) return false;
-
-        double distance = Geolocator.distanceBetween(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-          userLocation.latitude,
-          userLocation.longitude,
-        );
-        return distance <= 50; // 50 meters radius
-      }).toList();
-
-      setState(() {
-        nearbyUsers = users;
-      });
+      _updateNearbyUsers(querySnapshot);
     } catch (e) {
       print('Error getting nearby users: $e');
-      String errorMessage = 'Failed to get nearby users';
-      if (e is FirebaseException && e.code == 'permission-denied') {
-        errorMessage +=
-            ': Permission denied. Please check Firestore security rules.';
-      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        SnackBar(content: Text('Failed to fetch nearby users: $e')),
       );
     }
   }
 
-  Future<void> _sendSOSNotification() async {
+  Future<void> _sendSOSNotification(BuildContext context) async {
     if (_currentPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location not available. Please try again.')),
+        const SnackBar(
+            content: Text('Location not available. Please try again.')),
       );
       return;
     }
 
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Send SOS Alert'),
+        content: const Text(
+            'Are you sure you want to send an SOS alert to all nearby users?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _sendSOSToUsers();
+            },
+            child: const Text('Send SOS', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendSOSToUsers() async {
     try {
       for (var user in nearbyUsers) {
         await _firestore
@@ -122,20 +179,26 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
             .doc(user['id'])
             .collection('notifications')
             .add({
-          'message': 'SOS Alert! User needs help at this location.',
+          'type': 'SOS',
+          'message':
+              'Emergency! User ${userEmail ?? 'Unknown'} needs immediate assistance!',
           'location':
               GeoPoint(_currentPosition!.latitude, _currentPosition!.longitude),
           'timestamp': FieldValue.serverTimestamp(),
           'from': userEmail,
+          'fromId': _auth.currentUser?.uid,
         });
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('SOS notification sent to nearby users.')),
+        const SnackBar(
+          content: Text('SOS alert sent successfully'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       print('Error sending SOS notification: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send SOS notification: $e')),
+        SnackBar(content: Text('Failed to send SOS alert: $e')),
       );
     }
   }
@@ -146,7 +209,19 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
       setState(() {
         _isSharing = _locationService.isSharing;
       });
-      await _getCurrentPositionAndFetchUsers();
+
+      if (_isSharing) {
+        await _getCurrentPositionAndFetchUsers();
+      } else {
+        // Clear location data when stopping sharing
+        await _firestore
+            .collection('users')
+            .doc(_auth.currentUser?.uid)
+            .update({
+          'location': null,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       print('Error toggling location sharing: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,94 +230,183 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
     }
   }
 
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    if (timestamp is Timestamp) {
+      return DateFormat('MMM d, h:mm a').format(timestamp.toDate());
+    }
+    return 'N/A';
+  }
+
+  String _formatDistance(int meters) {
+    if (meters < 1000) {
+      return '$meters m';
+    } else {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nearby Users'),
+        title: const Text('Community'),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(_isSharing ? Icons.location_on : Icons.location_off),
-            onPressed: _toggleSharing,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Text('Your email: ${userEmail ?? 'Loading...'}'),
-          Text(_isSharing ? 'Sharing Location' : 'Not Sharing Location'),
-          Text('Nearby Users: ${nearbyUsers.length}'),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Adjust for the number of columns
-                childAspectRatio: 3 / 2, // Adjust for tile height/width ratio
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: IconButton(
+              key: ValueKey(_isSharing),
+              icon: Icon(
+                _isSharing ? Icons.share_location : Icons.location_disabled,
+                color: _isSharing ? Colors.green : Colors.red,
               ),
-              itemCount: nearbyUsers.length,
-              itemBuilder: (context, index) {
-                final user = nearbyUsers[index];
-                return Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          user['email'] ?? 'No email',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'ID: ${user['id']}',
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'Last updated: ${_formatTimestamp(user['lastUpdated'])}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              onPressed: _toggleSharing,
             ),
           ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            onPressed: _getCurrentPositionAndFetchUsers,
-            tooltip: 'Refresh Nearby Users',
-            child: Icon(Icons.refresh),
-          ),
-          SizedBox(height: 10),
-          FloatingActionButton.extended(
-            onPressed: _sendSOSNotification,
-            label: Text('SOS'),
-            icon: Icon(Icons.warning),
-            backgroundColor: Colors.purple[200],
-          ),
-        ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _getCurrentPositionAndFetchUsers,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.grey[100],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Nearby Users: ${nearbyUsers.length}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _isSharing ? 'Sharing Location' : 'Location Hidden',
+                          style: TextStyle(
+                            color: _isSharing ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: nearbyUsers.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.people_outline,
+                                    size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No nearby users found',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(8),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.85,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: nearbyUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = nearbyUsers[index];
+                              return Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor: Colors.primaries[
+                                            index % Colors.primaries.length],
+                                        child: Text(
+                                          (user['email'] as String?)
+                                                  ?.substring(0, 1)
+                                                  .toUpperCase() ??
+                                              '?',
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              user['email'] ?? 'Unknown User',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.location_on,
+                                                    size: 16),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _formatDistance(
+                                                      user['distance'] ?? 0),
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Last seen: ${_formatTimestamp(user['lastUpdated'])}',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _sendSOSNotification(context),
+        label: const Text('SOS'),
+        icon: const Icon(Icons.warning),
+        backgroundColor: Colors.red,
       ),
     );
-  }
-
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return 'N/A';
-    if (timestamp is Timestamp) {
-      return timestamp.toDate().toString();
-    }
-    return timestamp.toString();
   }
 }
