@@ -107,6 +107,39 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
     }
   }
 
+  Future<void> _sendSOSNotification() async {
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location not available. Please try again.')),
+      );
+      return;
+    }
+
+    try {
+      for (var user in nearbyUsers) {
+        await _firestore
+            .collection('users')
+            .doc(user['id'])
+            .collection('notifications')
+            .add({
+          'message': 'SOS Alert! User needs help at this location.',
+          'location':
+              GeoPoint(_currentPosition!.latitude, _currentPosition!.longitude),
+          'timestamp': FieldValue.serverTimestamp(),
+          'from': userEmail,
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('SOS notification sent to nearby users.')),
+      );
+    } catch (e) {
+      print('Error sending SOS notification: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send SOS notification: $e')),
+      );
+    }
+  }
+
   void _toggleSharing() async {
     try {
       await _locationService.toggleSharing();
@@ -140,25 +173,67 @@ class _NearbyUsersPageState extends State<NearbyUsersPage> {
           Text(_isSharing ? 'Sharing Location' : 'Not Sharing Location'),
           Text('Nearby Users: ${nearbyUsers.length}'),
           Expanded(
-            child: ListView.builder(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, // Adjust for the number of columns
+                childAspectRatio: 3 / 2, // Adjust for tile height/width ratio
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
               itemCount: nearbyUsers.length,
               itemBuilder: (context, index) {
                 final user = nearbyUsers[index];
-                return ListTile(
-                  title: Text(user['email'] ?? 'No email'),
-                  subtitle: Text('ID: ${user['id']}'),
-                  trailing: Text(
-                      'Last updated: ${_formatTimestamp(user['lastUpdated'])}'),
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          user['email'] ?? 'No email',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'ID: ${user['id']}',
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Last updated: ${_formatTimestamp(user['lastUpdated'])}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getCurrentPositionAndFetchUsers,
-        tooltip: 'Refresh Nearby Users',
-        child: Icon(Icons.refresh),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: _getCurrentPositionAndFetchUsers,
+            tooltip: 'Refresh Nearby Users',
+            child: Icon(Icons.refresh),
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton.extended(
+            onPressed: _sendSOSNotification,
+            label: Text('SOS'),
+            icon: Icon(Icons.warning),
+            backgroundColor: Colors.purple[200],
+          ),
+        ],
       ),
     );
   }

@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sphere/ble_devices_page.dart';
-import 'package:sphere/esp32.dart';
 import 'package:sphere/nearby_users_service.dart';
 import 'package:sphere/splash_screen.dart';
 import 'location_sharing.dart'; // Location Sharing Page
@@ -217,7 +216,6 @@ class _HomePageState extends State<HomePage> {
     NearbyUsersPage(),
     LocationSharingScreen(),
     BLEDevicesPage(), // Heart Rate via BLE Devices
-    const ESP32IntegrationPage(), // ESP32 Page
   ];
 
   @override
@@ -241,7 +239,6 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.location_on), label: "Location"),
           BottomNavigationBarItem(
               icon: Icon(Icons.favorite), label: "Heart Rate"),
-          BottomNavigationBarItem(icon: Icon(Icons.bluetooth), label: "ESP32"),
         ],
         currentIndex: selectedItem,
         onTap: (value) {

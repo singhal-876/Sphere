@@ -23,6 +23,8 @@ class _HomeState extends State<Home> {
   List<Contact> contacts = [];
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   bool _bluetoothState = false;
+  String? _connectedDeviceName;
+  String? _connectedDeviceId;
 
   @override
   void initState() {
@@ -148,16 +150,43 @@ class _HomeState extends State<Home> {
 
   void _navigateToBLEDevicesPage() async {
     if (_bluetoothState) {
-      Navigator.push(
+      final selectedDevice = await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BLEDevicesPage()),
+        MaterialPageRoute(builder: (context) => const BLEDevicesPage()),
       );
+
+      if (selectedDevice != null) {
+        setState(() {
+          _connectedDeviceName = selectedDevice.name.isNotEmpty
+              ? selectedDevice.name
+              : "Unnamed Device";
+          _connectedDeviceId = selectedDevice.id;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Connected to $_connectedDeviceName ($_connectedDeviceId)"),
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text("Please enable Bluetooth to scan for devices")),
       );
     }
+  }
+
+  void _disconnectDevice() {
+    setState(() {
+      _connectedDeviceName = null;
+      _connectedDeviceId = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Device disconnected")),
+    );
   }
 
   @override
@@ -197,14 +226,15 @@ class _HomeState extends State<Home> {
                       color: const Color.fromARGB(255, 193, 186, 222),
                       borderRadius: BorderRadius.circular(40),
                     ),
-                    child: const Column(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("CONNECTED"),
-                        Text("Battery Status: FULL"),
+                        Text(_connectedDeviceName != null
+                            ? "Connected to:\n$_connectedDeviceName"
+                            : "No Device Connected"),
+                        Text("Battery Status: --"),
                         Text("GPS Tracking: ON"),
-                        Text("Safety Status: YES"),
                       ],
                     ),
                   ),
@@ -249,16 +279,19 @@ class _HomeState extends State<Home> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _navigateToBLEDevicesPage,
-                      icon: Icon(_bluetoothState
+                      onPressed: _connectedDeviceId == null
+                          ? _navigateToBLEDevicesPage
+                          : _disconnectDevice,
+                      icon: Icon(_connectedDeviceId == null
                           ? Icons.bluetooth
                           : Icons.bluetooth_disabled),
-                      label: Text(_bluetoothState
+                      label: Text(_connectedDeviceId == null
                           ? "Scan BLE Devices"
-                          : "Bluetooth OFF"),
+                          : "Disconnect"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _bluetoothState ? Colors.blue : Colors.grey,
+                        backgroundColor: _connectedDeviceId == null
+                            ? Colors.blue
+                            : Colors.orange,
                       ),
                     ),
                   ),

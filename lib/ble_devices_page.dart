@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:async';
-import 'heart_rate_monitor_page.dart'; // Import updated heart rate monitor page
 
 class BLEDevicesPage extends StatefulWidget {
   const BLEDevicesPage({super.key});
@@ -14,6 +13,7 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final List<DiscoveredDevice> _devicesList = [];
   late StreamSubscription<DiscoveredDevice> _scanSubscription;
+  bool _isScanning = false;
 
   @override
   void initState() {
@@ -22,14 +22,32 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
   }
 
   void _startScan() {
+    setState(() {
+      _isScanning = true;
+    });
+
     _scanSubscription = _ble.scanForDevices(withServices: []).listen((device) {
       setState(() {
-        if (!_devicesList.contains(device)) {
+        if (!_devicesList.any((d) => d.id == device.id)) {
           _devicesList.add(device);
         }
       });
     }, onError: (error) {
       print('Scan error: $error');
+      setState(() {
+        _isScanning = false;
+      });
+    }, onDone: () {
+      setState(() {
+        _isScanning = false;
+      });
+    });
+  }
+
+  void _stopScan() {
+    _scanSubscription.cancel();
+    setState(() {
+      _isScanning = false;
     });
   }
 
@@ -39,14 +57,8 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
     super.dispose();
   }
 
-  void _connectToDevice(DiscoveredDevice device) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HeartRateMonitorPage(
-            device: device), // Navigate to the updated HeartRateMonitorPage
-      ),
-    );
+  void _selectDevice(DiscoveredDevice device) {
+    Navigator.pop(context, device); // Return the selected device to the home page
   }
 
   @override
@@ -54,20 +66,36 @@ class _BLEDevicesPageState extends State<BLEDevicesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available BLE Devices'),
+        actions: [
+          if (_isScanning)
+            IconButton(
+              icon: const Icon(Icons.stop),
+              onPressed: _stopScan,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _startScan,
+            ),
+        ],
       ),
-      body: ListView.builder(
-        itemCount: _devicesList.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_devicesList[index].name.isNotEmpty
-                ? _devicesList[index].name
-                : "Unnamed Device"),
-            subtitle: Text(_devicesList[index].id),
-            onTap: () => _connectToDevice(
-                _devicesList[index]), // Connect to selected device
-          );
-        },
-      ),
+      body: _devicesList.isEmpty
+          ? const Center(child: Text('No devices found. Scanning...'))
+          : ListView.builder(
+              itemCount: _devicesList.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(
+                    _devicesList[index].name.isNotEmpty
+                        ? _devicesList[index].name
+                        : "Unnamed Device",
+                  ),
+                  subtitle: Text(_devicesList[index].id),
+                  onTap: () => _selectDevice(
+                      _devicesList[index]), // Return the selected device
+                );
+              },
+            ),
     );
   }
 }
