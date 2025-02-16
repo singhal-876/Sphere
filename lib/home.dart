@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, use_build_context_synchronously
+// ignore_for_file: unused_local_variable
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -34,11 +34,17 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> requestPermissions() async {
-    await Permission.sms.request();
-    await Permission.phone.request();
-    await Permission.bluetoothScan.request();
-    await Permission.bluetoothConnect.request();
-    await Permission.location.request();
+    var smsStatus = await Permission.sms.request();
+    var phoneStatus = await Permission.phone.request();
+    var bluetoothScanStatus = await Permission.bluetoothScan.request();
+    var bluetoothConnectStatus = await Permission.bluetoothConnect.request();
+    var locationStatus = await Permission.location.request();
+
+    if (smsStatus.isDenied || phoneStatus.isDenied || locationStatus.isDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("All permissions are required for SOS")),
+      );
+    }
   }
 
   void loadContacts() async {
